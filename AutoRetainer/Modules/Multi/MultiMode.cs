@@ -1,4 +1,4 @@
-﻿using AutoRetainer.Internal;
+using AutoRetainer.Internal;
 using AutoRetainer.Modules.EzIPCManagers;
 using AutoRetainer.Modules.Voyage;
 using AutoRetainer.Modules.Voyage.Tasks;
@@ -425,7 +425,11 @@ internal static unsafe class MultiMode
                         {
                             if(!TaskTeleportToProperty.EnqueueIfNeededAndPossible(false))
                             {
-                                EnterWorkshopForRetainers();
+                                if(EnterWorkshopForRetainers())
+                                {
+                                    BlockInteraction(10);
+                                    return;
+                                }
                                 EnsureCharacterValidity();
                                 if(data.Enabled)
                                 {
@@ -494,7 +498,7 @@ internal static unsafe class MultiMode
         return canDeliver;
     }
 
-    internal static void EnterWorkshopForRetainers()
+    internal static bool EnterWorkshopForRetainers()
     {
         if(Utils.GetReachableRetainerBell(true) == null && Houses.List.Contains((ushort)Player.Territory))
         {
@@ -504,7 +508,9 @@ internal static unsafe class MultiMode
                 DuoLog.Error($"Due to absence of retainer bell and failure to find workshop, character is excluded from processing retainers");
                 P.TaskManager.Abort();
             });
+            return true;
         }
+        return false;
     }
 
     internal static IEnumerable<OfflineCharacterData> GetEnabledOfflineData()
