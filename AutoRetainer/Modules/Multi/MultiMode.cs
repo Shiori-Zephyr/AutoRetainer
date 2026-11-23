@@ -317,12 +317,22 @@ internal static unsafe class MultiMode
             var eligibleForGcDelivery = CanExpertDeliver() && EzThrottler.Check($"ExpertDeliver_{Data.Identity}");
             var eligibleForCabinet = CanCabinetDeliver() && EzThrottler.Check($"CabinetDeliver_{Data.Identity}");
             var eligibleForMirage = CanMirageDeliver() && EzThrottler.Check($"MirageDeliver_{Data.Identity}");
-            if(ProperOnLogin.PlayerPresent && !P.TaskManager.IsBusy)
+            if(ProperOnLogin.PlayerPresent && !P.TaskManager.IsBusy && !VoyageScheduler.Enabled)
             {
                 if(!Utils.IsInventoryFree() && !eligibleForGcDelivery && !eligibleForCabinet && !eligibleForMirage)
                 {
-                    S.AnomalyWindow.Add("AutoRetainer has detemined that you lack sufficient inventory space and no suitable cleanup method is found, therefore retainer processing was disabled.");
-                    Data.Enabled = false;
+                    if(Utils.InventoryContainsDiscardableItems())
+                    {
+                        if(EzThrottler.Throttle("MultiModeInventoryDiscard", 10000))
+                        {
+                            TaskRecursiveItemDiscard.EnqueueIfNeeded();
+                        }
+                    }
+                    else
+                    {
+                        S.AnomalyWindow.Add("AutoRetainer has detemined that you lack sufficient inventory space and no suitable cleanup method is found, therefore retainer processing was disabled.");
+                        Data.Enabled = false;
+                    }
                 }
             }
             if(ProperOnLogin.PlayerPresent && !P.TaskManager.IsBusy && IsInteractionAllowed()
