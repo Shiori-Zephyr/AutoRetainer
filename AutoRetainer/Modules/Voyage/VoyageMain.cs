@@ -1,4 +1,4 @@
-﻿using AutoRetainer.Internal;
+using AutoRetainer.Internal;
 using AutoRetainer.Modules.Voyage.PartSwapper;
 using AutoRetainer.Modules.Voyage.Tasks;
 using AutoRetainer.Modules.Voyage.VoyageCalculator;
@@ -39,9 +39,17 @@ internal static unsafe class VoyageMain
             }
             if(txt == Lang.VoyageInventoryError)
             {
-                S.AnomalyWindow.Add($"Your inventory is full. Character excluded from submarines.");
                 Utils.CleanupOperations();
-                Data.WorkshopEnabled = false;
+                if(Utils.InventoryContainsDiscardableItems())
+                {
+                    DuoLog.Warning($"[Voyage] Inventory is full, discarding items before retrying.");
+                    TaskRecursiveItemDiscard.EnqueueIfNeeded();
+                }
+                else
+                {
+                    S.AnomalyWindow.Add($"Your inventory is full. Character excluded from submarines.");
+                    Data.WorkshopEnabled = false;
+                }
             }
             if(Lang.UnableToRepairVessel(txt))
             {
@@ -186,6 +194,7 @@ internal static unsafe class VoyageMain
             {
                 if(EzThrottler.Throttle("DoWorkshopPanelTick.ScheduleResend", 1000))
                 {
+                    TaskRecursiveItemDiscard.EnqueueIfNeeded();
                     TaskFinalizeVessel.Enqueue(next, type, true);
                 }
             }
@@ -197,6 +206,7 @@ internal static unsafe class VoyageMain
                     {
                         if(data.ReturnTime != 0)
                         {
+                            TaskRecursiveItemDiscard.EnqueueIfNeeded();
                             TaskFinalizeVessel.Enqueue(next, type, false);
                         }
                         else
